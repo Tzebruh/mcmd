@@ -1,0 +1,9 @@
+#methods-example
+
+.main:
+/say Calling method 2 now!
+call function2
+/say Method 2 was just called; we'll see when it does something
+
+.method2:
+/say Hi from method 2!
