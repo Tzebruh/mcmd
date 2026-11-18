@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Compiler (CommandBlock, CommandBlockChain, compile) where
+module Compiler (ModuleName, Label, Command, CommandMethod, CommandBlock (ImpulseRedstone, RepeatingAlways, ChainAlwaysConditional), CommandBlockChain, compile) where
 import System.Directory (doesFileExist)
 import Text.Regex.TDFA ((=~))
 import Data.List (isPrefixOf)
@@ -73,7 +73,7 @@ methodToChain name (label, (c:cs)) = let methodName = labelToMethodName name lab
         "main"  -> ImpulseRedstone c : map ChainAlwaysConditional cs
         _       -> [RepeatingAlways $ "execute if score " ++ methodName ++ " mcmd matches 1",
                     ChainAlwaysConditional $ "scoreboard players reset " ++ methodName ++ " mcmd"]
-                    ++ map ChainAlwaysConditional cs
+                    ++ map ChainAlwaysConditional (c:cs)
 
 methodsToChains :: ModuleName -> [CommandMethod] -> [CommandBlockChain]
 methodsToChains name = map $ methodToChain name

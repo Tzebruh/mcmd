@@ -3,6 +3,7 @@ import System.Environment (getArgs, getProgName)
 import Data.List (isSuffixOf)
 import Compiler (compile)
 import Finalizer (finalize)
+import Text.Read (readMaybe)
 
 version :: String
 version = "n/a"
@@ -10,15 +11,18 @@ version = "n/a"
 showUsage :: IO ()
 showUsage = do
     progName <- getProgName
-    putStrLn $ "Usage: " ++ progName ++ " <sourcefile.mcmd>"
+    putStrLn $ "Usage: " ++ progName ++ " <sourcefile.mcmd> <y>"
 
 main :: IO ()
 main = do
     args <- getArgs
     case args of
         ["-v"]  -> putStrLn version
-        [path]  ->  if ".mcmd" `isSuffixOf` path then do
-                        chains <- compile path
-                        putStrLn $ finalize chains
-                    else showUsage
+        [path, yStr]
+            | ".mcmd" `isSuffixOf` path -> case readMaybe yStr :: Maybe Int of
+                Just y  -> do
+                    chains <- compile path
+                    putStrLn $ finalize y chains
+                Nothing -> showUsage
+            | otherwise                 -> showUsage
         _       ->  showUsage

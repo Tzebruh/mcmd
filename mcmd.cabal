@@ -51,7 +51,7 @@ extra-doc-files:    CHANGELOG.md
 -- extra-source-files:
 
 common warnings
-    ghc-options: -Wall
+    ghc-options: -Wall -O2
 
 executable mcmd
     -- Import common warning flags.
@@ -61,7 +61,7 @@ executable mcmd
     main-is:          Main.hs
 
     -- Modules included in this executable, other than Main.
-    other-modules:    Compiler, Finalizer
+    other-modules:    Helpers, Compiler, Finalizer
 
     -- LANGUAGE extensions used by modules in this package.
     -- other-extensions:
