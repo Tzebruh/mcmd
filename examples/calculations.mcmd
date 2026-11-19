@@ -1,0 +1,13 @@
+#calculations
+
+.main:
+
+$var1 = 10
+$var2 = 15
+$var1 += $var2
+$var1 /= 5
+
+$var3 = $var1
+$var3 %= 3
+
+/say Run `/scoreboard players get #calculations$var1 mcmd` and `/scoreboard players get #calculations$var3 mcmd` and check out the results!

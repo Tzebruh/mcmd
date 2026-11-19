@@ -1,15 +1,15 @@
-{-# LANGUAGE OverloadedStrings #-}
 module Compiler (ModuleName, Label, Command, CommandMethod, CommandBlock (ImpulseRedstone, ImpulseAlways, RepeatingAlways, ChainAlwaysConditional), CommandBlockChain, compile) where
 import System.Directory (doesFileExist)
 import Text.Regex.TDFA ((=~))
 import Data.List (isPrefixOf)
---import Data.Text (unpack, pack, replace)
 
+type Line = String          -- refers to a line in the source file
 type ModuleName = String
 type Label = String         -- refers to a source label like main
 type Command = String       -- refers to a compiled command, not a source command
 type CommandMethod = (Label, [Command])
 type MethodName = String    -- refers to a compiled method name like #hello-world.main
+type VarName = String       -- refers to a compiled var name like #hello-world$var1
 
 data CommandBlock = ImpulseRedstone Command
                     | ImpulseAlways Command
@@ -19,34 +19,64 @@ data CommandBlock = ImpulseRedstone Command
 
 type CommandBlockChain = [CommandBlock]
 
+labelPattern :: String
+labelPattern = "^\\.([a-zA-Z0-9_-]+):$" -- captures: [label]
+
+callPattern :: String
+callPattern = "^call ([a-zA-Z0-9_-]+)$" -- captures: [label]
+
+varOpPattern :: String
+varOpPattern = "^\\$([a-zA-Z0-9_-]+) (=|\\+=|-=|\\*=|\\/=|%=|>|<|><) \\$([a-zA-Z0-9_-]+)$" -- captures: [varDest, op, varSource]
+
+varOpImmPattern :: String
+varOpImmPattern = "^\\$([a-zA-Z0-9_-]+) (=|\\+=|-=|\\*=|\\/=|%=|>|<) ([0-9]+)$" -- captures: [varDest, op, imm]
+
 -- module name -> label -> output compiled method name
 labelToMethodName :: ModuleName -> Label -> MethodName
 labelToMethodName name label = "#" ++ name ++ "." ++ label
 
-labelPattern :: String
-labelPattern = "^\\.([a-zA-Z0-9_\\-]+):$"
-
-callPattern :: String
-callPattern = "^call ([a-zA-Z0-9_-]+)$"
-
-getLabelName :: String -> Label
+getLabelName :: Line -> Label
 getLabelName l = case l =~ labelPattern :: (String, String, String, [String]) of
     (_, _, _, [label])  -> label   -- before, match, after, capture groups
     _                   -> error $ "Cannot find label name in \"" ++ l ++ "\""
 
-getCallTarget :: String -> ModuleName -> MethodName
-getCallTarget l name = case l =~ callPattern :: (String, String, String, [String]) of
+getCallTarget :: ModuleName -> Line -> MethodName
+getCallTarget name l = case l =~ callPattern :: (String, String, String, [String]) of
     (_, _, _, [label])  -> labelToMethodName name label
     _                   -> error $ "Cannot find call target in \"" ++ l ++ "\""
 
--- methods -> module name -> line -> output line with substitutions
---substituteMethodNames :: [CommandMethod] -> ModuleName -> String -> String
---substituteMethodNames [] _ l        = l
---substituteMethodNames (m:ms) name l = substituteMethodNames ms name (unpack $ replace labelText methodName (pack l))
---    where labelText = pack $ fst m; methodName = pack $ labelToMethodName name (fst m)
+getVarOpDest :: ModuleName -> Line -> VarName
+getVarOpDest name l = case l =~ varOpPattern :: (String, String, String, [String]) of
+    (_, _, _, [varDest, _, _])  -> "#" ++ name ++ "$" ++ varDest
+    _                           -> error $ "Cannot find var dest in \"" ++ l ++ "\""
+
+getVarOpOp :: Line -> String
+getVarOpOp l = case l =~ varOpPattern :: (String, String, String, [String]) of
+    (_, _, _, [_, op, _])   -> op
+    _                       -> error $ "Cannot find op in \"" ++ l ++ "\""
+
+getVarOpSource :: ModuleName -> Line -> VarName
+getVarOpSource name l = case l =~ varOpPattern :: (String, String, String, [String]) of
+    (_, _, _, [_, _, varSource])    -> "#" ++ name ++ "$" ++ varSource
+    _                               -> error $ "Cannot find var source in \"" ++ l ++ "\""
+
+getVarOpImmDest :: ModuleName -> Line -> VarName
+getVarOpImmDest name l = case l =~ varOpImmPattern :: (String, String, String, [String]) of
+    (_, _, _, [varDest, _, _])  -> "#" ++ name ++ "$" ++ varDest
+    _                           -> error $ "Cannot find var dest in \"" ++ l ++ "\""
+
+getVarOpImmOp :: Line -> VarName
+getVarOpImmOp l = case l =~ varOpImmPattern :: (String, String, String, [String]) of
+    (_, _, _, [_, op, _])   -> op
+    _                       -> error $ "Cannot find op in \"" ++ l ++ "\""
+
+getVarOpImmImm :: Line -> VarName
+getVarOpImmImm l = case l =~ varOpImmPattern :: (String, String, String, [String]) of
+    (_, _, _, [_, _, imm])  -> imm
+    _                       -> error $ "Cannot find immediate in \"" ++ l ++ "\""
 
 -- lines -> current method -> methods -> module name -> output methods
-innerPureCompile :: [String] -> Maybe CommandMethod -> [CommandMethod] -> ModuleName -> [CommandMethod]
+innerPureCompile :: [Line] -> Maybe CommandMethod -> [CommandMethod] -> ModuleName -> [CommandMethod]
 innerPureCompile [] m methods _ = case m of
     Just mm -> methods ++ [mm]
     Nothing -> methods
@@ -61,9 +91,22 @@ innerPureCompile (l:ls) m methods name
             Just mm -> innerPureCompile ls (Just (fst mm, (snd mm) ++ [drop 1 l])) methods name
             Nothing -> error "Attempted to emit command outside a method"
     | l =~ callPattern :: Bool
-        = let emit = "scoreboard players set " ++ (getCallTarget l name) ++ " mcmd 1" in
+        = let emit = "scoreboard players set " ++ getCallTarget name l ++ " mcmd 1" in
             case m of
                 Just mm -> innerPureCompile ls (Just (fst mm, (snd mm) ++ [emit])) methods name
+                Nothing -> error "Attempted to emit command outside a method"
+    | l =~ varOpPattern :: Bool
+        = let emit = "scoreboard players operation " ++ getVarOpDest name l ++ " mcmd " ++ getVarOpOp l ++ " " ++ getVarOpSource name l ++ " mcmd" in
+            case m of
+                Just mm -> innerPureCompile ls (Just (fst mm, (snd mm) ++ [emit])) methods name
+                Nothing -> error "Attempted to emit command outside a method"
+    | l =~ varOpImmPattern :: Bool
+        = let
+            emit1 = "scoreboard players set #" ++ name ++ "$$imm mcmd " ++ getVarOpImmImm l
+            emit2 = "scoreboard players operation " ++ getVarOpImmDest name l ++ " mcmd " ++ getVarOpImmOp l ++ " #" ++ name ++ "$$imm" ++ " mcmd"
+        in
+            case m of
+                Just mm -> innerPureCompile ls (Just (fst mm, (snd mm) ++ [emit1, emit2])) methods name
                 Nothing -> error "Attempted to emit command outside a method"
     | otherwise = error $ "Unknown command \"" ++ l ++ "\""
 
@@ -81,7 +124,7 @@ methodToChain name (label, (c:cs)) = let methodName = labelToMethodName name lab
 methodsToChains :: ModuleName -> [CommandMethod] -> [CommandBlockChain]
 methodsToChains name = map $ methodToChain name
 
-pureCompile :: [String] -> [CommandBlockChain]
+pureCompile :: [Line] -> [CommandBlockChain]
 pureCompile [] = error "Empty source file"
 pureCompile (l:ls) = case l of
     '#' : name  -> if name =~ ("^[a-zA-Z0-9_-]+$" :: String) :: Bool then
