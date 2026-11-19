@@ -11,7 +11,7 @@ type VarName = String       -- refers to a compiled var name like #hello-world$v
 data CommandBlock = ImpulseRedstone Command
                     | ImpulseAlways Command
                     | RepeatingAlways Command
-                    | ChainAlwaysConditional Command
+                    | ChainAlways Bool Command  -- Bool for is conditional
                     deriving (Eq, Ord, Show, Read)
 
 type CommandBlockChain = [CommandBlock]

@@ -4,28 +4,28 @@ import Data.List (intercalate)
 import Helpers (addBackslashes)
 
 identifierOf :: CommandBlock -> String
-identifierOf (ImpulseRedstone _)        = "command_block"
-identifierOf (ImpulseAlways _)        = "command_block"
-identifierOf (RepeatingAlways _)        = "repeating_command_block"
-identifierOf (ChainAlwaysConditional _) = "chain_command_block"
+identifierOf (ImpulseRedstone _)    = "command_block"
+identifierOf (ImpulseAlways _)      = "command_block"
+identifierOf (RepeatingAlways _)    = "repeating_command_block"
+identifierOf (ChainAlways _ _)        = "chain_command_block"
 
 conditionalState :: CommandBlock -> String
-conditionalState (ImpulseRedstone _)        = "false"
-conditionalState (ImpulseAlways _)          = "false"
-conditionalState (RepeatingAlways _)        = "false"
-conditionalState (ChainAlwaysConditional _) = "true"
+conditionalState (ImpulseRedstone _)    = "false"
+conditionalState (ImpulseAlways _)      = "false"
+conditionalState (RepeatingAlways _)    = "false"
+conditionalState (ChainAlways cond _)   = if cond then "true" else "false"
 
 commandOf :: CommandBlock -> Command
-commandOf (ImpulseRedstone c)           = c
-commandOf (ImpulseAlways c)             = c
-commandOf (RepeatingAlways c)           = c
-commandOf (ChainAlwaysConditional c)    = c
+commandOf (ImpulseRedstone c)   = c
+commandOf (ImpulseAlways c)     = c
+commandOf (RepeatingAlways c)   = c
+commandOf (ChainAlways _ c)       = c
 
 autoTag :: CommandBlock -> String
-autoTag (ImpulseRedstone _)         = "0b"
-autoTag (ImpulseAlways _)           = "1b"
-autoTag (RepeatingAlways _)         = "1b"
-autoTag (ChainAlwaysConditional _)  = "1b"
+autoTag (ImpulseRedstone _) = "0b"
+autoTag (ImpulseAlways _)   = "1b"
+autoTag (RepeatingAlways _) = "1b"
+autoTag (ChainAlways _ _)     = "1b"
 
 commandBlockSetblock :: (Int, Int, Int) -> CommandBlock -> Command
 commandBlockSetblock (xOffset, y, zOffset) b = "setblock ~" ++ show xOffset ++ " " ++ show y ++ " ~" ++ show zOffset ++ " " ++ identifierOf b ++

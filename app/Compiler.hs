@@ -53,16 +53,26 @@ innerPureCompile (l:ls) m methods name
                 Nothing -> error "Attempted to emit command outside a method"
     | otherwise = error $ "Unknown command \"" ++ l ++ "\""
 
+nextBlockShouldBeUncon :: Command -> Bool
+nextBlockShouldBeUncon = isPrefixOf "execute if"
+
+-- start with unconditional -> remaining commands -> output remaining chain
+remainingChain :: Bool -> [Command] -> CommandBlockChain
+remainingChain _ [] = []
+remainingChain startUncon (c:cs)
+    | startUncon    = ChainAlways False c : remainingChain (nextBlockShouldBeUncon c) cs
+    | otherwise     = ChainAlways True c : remainingChain (nextBlockShouldBeUncon c) cs
+
 methodToChain :: ModuleName -> CommandMethod -> CommandBlockChain
 methodToChain _ (label, []) = error $ "No commands in method \"" ++ label ++ "\""
 methodToChain name (label, (c:cs)) = let methodName = labelToMethodName name label in
     case label of
-        "main"  -> ImpulseRedstone c : map ChainAlwaysConditional cs
-        "setup" -> ImpulseAlways c : map ChainAlwaysConditional cs
-        "loop"  -> RepeatingAlways c : map ChainAlwaysConditional cs
+        "main"  -> ImpulseRedstone c : remainingChain False cs
+        "setup" -> ImpulseAlways c : remainingChain False cs
+        "loop"  -> RepeatingAlways c : remainingChain False cs
         _       -> [RepeatingAlways $ "execute if score " ++ methodName ++ " mcmd matches 1",
-                    ChainAlwaysConditional $ "scoreboard players reset " ++ methodName ++ " mcmd"]
-                    ++ map ChainAlwaysConditional (c:cs)
+                    ChainAlways True $ "scoreboard players reset " ++ methodName ++ " mcmd"]
+                    ++ remainingChain False (c:cs)
 
 methodsToChains :: ModuleName -> [CommandMethod] -> [CommandBlockChain]
 methodsToChains name = map $ methodToChain name
