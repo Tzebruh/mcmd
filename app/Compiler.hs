@@ -1,5 +1,5 @@
 {-# LANGUAGE OverloadedStrings #-}
-module Compiler (ModuleName, Label, Command, CommandMethod, CommandBlock (ImpulseRedstone, RepeatingAlways, ChainAlwaysConditional), CommandBlockChain, compile) where
+module Compiler (ModuleName, Label, Command, CommandMethod, CommandBlock (ImpulseRedstone, ImpulseAlways, RepeatingAlways, ChainAlwaysConditional), CommandBlockChain, compile) where
 import System.Directory (doesFileExist)
 import Text.Regex.TDFA ((=~))
 import Data.List (isPrefixOf)
@@ -12,6 +12,7 @@ type CommandMethod = (Label, [Command])
 type MethodName = String    -- refers to a compiled method name like #hello-world.main
 
 data CommandBlock = ImpulseRedstone Command
+                    | ImpulseAlways Command
                     | RepeatingAlways Command
                     | ChainAlwaysConditional Command
                     deriving (Eq, Ord, Show, Read)
@@ -71,6 +72,7 @@ methodToChain _ (label, []) = error $ "No commands in method \"" ++ label ++ "\"
 methodToChain name (label, (c:cs)) = let methodName = labelToMethodName name label in
     case label of
         "main"  -> ImpulseRedstone c : map ChainAlwaysConditional cs
+        "setup" -> ImpulseAlways c : map ChainAlwaysConditional cs
         "loop"  -> RepeatingAlways c : map ChainAlwaysConditional cs
         _       -> [RepeatingAlways $ "execute if score " ++ methodName ++ " mcmd matches 1",
                     ChainAlwaysConditional $ "scoreboard players reset " ++ methodName ++ " mcmd"]

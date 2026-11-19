@@ -1,25 +1,29 @@
 module Finalizer (finalize) where
-import Compiler (Command, CommandBlock (ImpulseRedstone, RepeatingAlways, ChainAlwaysConditional), CommandBlockChain)
+import Compiler (Command, CommandBlock (ImpulseRedstone, RepeatingAlways, ChainAlwaysConditional, ImpulseAlways), CommandBlockChain)
 import Data.List (intercalate)
 import Helpers (addBackslashes)
 
 identifierOf :: CommandBlock -> String
 identifierOf (ImpulseRedstone _)        = "minecraft:command_block"
+identifierOf (ImpulseAlways _)        = "minecraft:command_block"
 identifierOf (RepeatingAlways _)        = "minecraft:repeating_command_block"
 identifierOf (ChainAlwaysConditional _) = "minecraft:chain_command_block"
 
 conditionalState :: CommandBlock -> String
 conditionalState (ImpulseRedstone _)        = "false"
+conditionalState (ImpulseAlways _)          = "false"
 conditionalState (RepeatingAlways _)        = "false"
 conditionalState (ChainAlwaysConditional _) = "true"
 
 commandOf :: CommandBlock -> Command
-commandOf (ImpulseRedstone c)         = c
-commandOf (RepeatingAlways c)         = c
-commandOf (ChainAlwaysConditional c)  = c
+commandOf (ImpulseRedstone c)           = c
+commandOf (ImpulseAlways c)             = c
+commandOf (RepeatingAlways c)           = c
+commandOf (ChainAlwaysConditional c)    = c
 
 autoTag :: CommandBlock -> String
 autoTag (ImpulseRedstone _)         = "0b"
+autoTag (ImpulseAlways _)           = "1b"
 autoTag (RepeatingAlways _)         = "1b"
 autoTag (ChainAlwaysConditional _)  = "1b"
 
