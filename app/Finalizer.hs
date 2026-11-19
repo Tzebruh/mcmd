@@ -1,5 +1,5 @@
 module Finalizer (finalize) where
-import Compiler (Command, CommandBlock (ImpulseRedstone, RepeatingAlways, ChainAlwaysConditional, ImpulseAlways), CommandBlockChain)
+import Types
 import Data.List (intercalate)
 import Helpers (addBackslashes)
 
