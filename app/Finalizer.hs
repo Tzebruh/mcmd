@@ -4,10 +4,10 @@ import Data.List (intercalate)
 import Helpers (addBackslashes)
 
 identifierOf :: CommandBlock -> String
-identifierOf (ImpulseRedstone _)        = "minecraft:command_block"
-identifierOf (ImpulseAlways _)        = "minecraft:command_block"
-identifierOf (RepeatingAlways _)        = "minecraft:repeating_command_block"
-identifierOf (ChainAlwaysConditional _) = "minecraft:chain_command_block"
+identifierOf (ImpulseRedstone _)        = "command_block"
+identifierOf (ImpulseAlways _)        = "command_block"
+identifierOf (RepeatingAlways _)        = "repeating_command_block"
+identifierOf (ChainAlwaysConditional _) = "chain_command_block"
 
 conditionalState :: CommandBlock -> String
 conditionalState (ImpulseRedstone _)        = "false"
@@ -34,7 +34,9 @@ commandBlockSetblock (xOffset, y, zOffset) b = "setblock ~" ++ show xOffset ++ "
 -- xOffset,y,zOffset -> chain -> output generator commands
 finalizeChain :: (Int, Int, Int) -> CommandBlockChain -> [Command]
 finalizeChain (_, _, _) [] = []
-finalizeChain (xOffset, y, zOffset) (cb:cbs) = commandBlockSetblock (xOffset, y, zOffset) cb : finalizeChain (xOffset, y, zOffset + 1) cbs
+finalizeChain (xOffset, y, zOffset) (cb:cbs) = case cb of
+    (ImpulseRedstone _) -> ("setblock ~" ++ show xOffset ++ " " ++ show y ++ " ~" ++ show (zOffset - 1) ++ " polished_blackstone_button") : commandBlockSetblock (xOffset, y, zOffset) cb : finalizeChain (xOffset, y, zOffset + 1) cbs
+    _                   -> commandBlockSetblock (xOffset, y, zOffset) cb : finalizeChain (xOffset, y, zOffset + 1) cbs
 
 -- xOffset,y,zOffset -> chains -> output generator commands
 finalizeInternal :: (Int, Int, Int) -> [CommandBlockChain] -> [Command]
