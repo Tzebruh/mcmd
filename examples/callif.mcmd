@@ -1,0 +1,17 @@
+#callif-example
+
+.main:
+
+$var1 = 9
+$var2 = $var1
+$var2 %= 2
+-- $var2 should now be 1
+
+callif $var2 = 0 if-even
+callif $var2 > 0 if-odd
+
+.if-even:
+/say This section shouldn't be called
+
+.if-odd:
+/say This section should be called

@@ -1,7 +1,5 @@
 # Revision history for mcmd
 
-This is still the template; when the thing *actually works* then I'll make a real changelog
+## 0.1.0.0 -- 2026-11-19
 
-## 0.1.0.0 -- YYYY-mm-dd
-
-* First version. Released on an unsuspecting world.
+* First alpha version; contains pure commands, methods, variables, variable operations, and comparison calling conditions.
