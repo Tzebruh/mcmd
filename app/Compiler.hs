@@ -71,6 +71,7 @@ methodToChain _ (label, []) = error $ "No commands in method \"" ++ label ++ "\"
 methodToChain name (label, (c:cs)) = let methodName = labelToMethodName name label in
     case label of
         "main"  -> ImpulseRedstone c : map ChainAlwaysConditional cs
+        "loop"  -> RepeatingAlways c : map ChainAlwaysConditional cs
         _       -> [RepeatingAlways $ "execute if score " ++ methodName ++ " mcmd matches 1",
                     ChainAlwaysConditional $ "scoreboard players reset " ++ methodName ++ " mcmd"]
                     ++ map ChainAlwaysConditional (c:cs)
