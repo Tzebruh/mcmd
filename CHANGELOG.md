@@ -6,4 +6,4 @@
 
 ## 0.1.0.1 -- 2026-11-19
 
-* Optimized method calling to take 1 tick instead of 2
+* Optimized method calling to take 1 command block instead of 2
