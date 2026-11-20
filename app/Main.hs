@@ -6,7 +6,7 @@ import Finalizer (finalize)
 import Text.Read (readMaybe)
 
 version :: String
-version = "0.1.0.0"
+version = "0.1.0.1"
 
 showUsage :: IO ()
 showUsage = do

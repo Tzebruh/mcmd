@@ -70,9 +70,7 @@ methodToChain name (label, (c:cs)) = let methodName = labelToMethodName name lab
         "main"  -> ImpulseRedstone c : remainingChain False cs
         "setup" -> ImpulseAlways c : remainingChain False cs
         "loop"  -> RepeatingAlways c : remainingChain False cs
-        _       -> [RepeatingAlways $ "execute if score " ++ methodName ++ " mcmd matches 1",
-                    ChainAlways True $ "scoreboard players reset " ++ methodName ++ " mcmd"]
-                    ++ remainingChain False (c:cs)
+        _       -> RepeatingAlways ("execute if score " ++ methodName ++ " mcmd matches 1 run scoreboard players reset " ++ methodName ++ " mcmd") : remainingChain False (c:cs)
 
 methodsToChains :: ModuleName -> [CommandMethod] -> [CommandBlockChain]
 methodsToChains name = map $ methodToChain name
