@@ -14,11 +14,11 @@ varOpPattern = "^\\$([a-zA-Z0-9_-]+) (=|\\+=|-=|\\*=|\\/=|%=|>|<|><) \\$([a-zA-Z
 varOpImmPattern :: String
 varOpImmPattern = "^\\$([a-zA-Z0-9_-]+) (=|\\+=|-=|\\*=|\\/=|%=|>|<) ([0-9]+)$" -- captures: [varDest, op, imm]
 
-callifPattern :: String
-callifPattern = "^callif \\$([a-zA-Z0-9_-]+) (<|<=|=|>|>=) \\$([a-zA-Z0-9_-]+) ([a-zA-Z0-9_-]+)$" -- captures: [varSrc1, op, varSrc2, label]
+assertPattern :: String
+assertPattern = "^assert \\$([a-zA-Z0-9_-]+) (<|<=|=|>|>=) \\$([a-zA-Z0-9_-]+)$" -- captures: [varSrc1, op, varSrc2]
 
-callifImmPattern :: String
-callifImmPattern = "^callif \\$([a-zA-Z0-9_-]+) (<|<=|=|>|>=) ([0-9]+) ([a-zA-Z0-9_-]+)$" -- captures: [varSrc1, op, imm, label]
+assertImmPattern :: String
+assertImmPattern = "^assert \\$([a-zA-Z0-9_-]+) in ([0-9]+|\\.\\.[0-9]+|[0-9]+\\.\\.|[0-9]+\\.\\.[0-9]+)$" -- captures: [varSrc1, range]
 
 -- module name -> label -> output compiled method name
 labelToMethodName :: ModuleName -> Label -> MethodName
@@ -64,42 +64,27 @@ getVarOpImmImm l = case l =~ varOpImmPattern :: (String, String, String, [String
     (_, _, _, [_, _, imm])  -> imm
     _                       -> error $ "Cannot find immediate in \"" ++ l ++ "\""
 
-getCallifSrc1 :: ModuleName -> Line -> VarName
-getCallifSrc1 name l = case l =~ callifPattern :: (String, String, String, [String]) of
-    (_, _, _, [varSrc1, _, _, _])   -> "#" ++ name ++ "$" ++ varSrc1
-    _                               -> error $ "Cannot find var source 1 in \"" ++ l ++ "\""
+getAssertSrc1 :: ModuleName -> Line -> VarName
+getAssertSrc1 name l = case l =~ assertPattern :: (String, String, String, [String]) of
+    (_, _, _, [varSrc1, _, _])  -> "#" ++ name ++ "$" ++ varSrc1
+    _                           -> error $ "Cannot find var source 1 in \"" ++ l ++ "\""
 
-getCallifOp :: Line -> VarName
-getCallifOp l = case l =~ callifPattern :: (String, String, String, [String]) of
-    (_, _, _, [_, op, _, _])    -> op
-    _                           -> error $ "Cannot find op in \"" ++ l ++ "\""
+getAssertOp :: Line -> VarName
+getAssertOp l = case l =~ assertPattern :: (String, String, String, [String]) of
+    (_, _, _, [_, op, _])   -> op
+    _                       -> error $ "Cannot find op in \"" ++ l ++ "\""
 
-getCallifSrc2 :: ModuleName -> Line -> VarName
-getCallifSrc2 name l = case l =~ callifPattern :: (String, String, String, [String]) of
-    (_, _, _, [_, _, varSrc2, _])   -> "#" ++ name ++ "$" ++ varSrc2
-    _                               -> error $ "Cannot find var source 2 in \"" ++ l ++ "\""
+getAssertSrc2 :: ModuleName -> Line -> VarName
+getAssertSrc2 name l = case l =~ assertPattern :: (String, String, String, [String]) of
+    (_, _, _, [_, _, varSrc2])  -> "#" ++ name ++ "$" ++ varSrc2
+    _                           -> error $ "Cannot find var source 2 in \"" ++ l ++ "\""
 
-getCallifTarget :: ModuleName -> Line -> MethodName
-getCallifTarget name l = case l =~ callifPattern :: (String, String, String, [String]) of
-    (_, _, _, [_, _, _, label]) -> labelToMethodName name label
-    _                           -> error $ "Cannot find call target in \"" ++ l ++ "\""
+getAssertImmSrc1 :: ModuleName -> Line -> VarName
+getAssertImmSrc1 name l = case l =~ assertImmPattern :: (String, String, String, [String]) of
+    (_, _, _, [varSrc1, _]) -> "#" ++ name ++ "$" ++ varSrc1
+    _                       -> error $ "Cannot find var source 1 in \"" ++ l ++ "\""
 
-getCallifImmSrc1 :: ModuleName -> Line -> VarName
-getCallifImmSrc1 name l = case l =~ callifImmPattern :: (String, String, String, [String]) of
-    (_, _, _, [varSrc1, _, _, _])   -> "#" ++ name ++ "$" ++ varSrc1
-    _                               -> error $ "Cannot find var source 1 in \"" ++ l ++ "\""
-
-getCallifImmOp :: Line -> VarName
-getCallifImmOp l = case l =~ callifImmPattern :: (String, String, String, [String]) of
-    (_, _, _, [_, op, _, _])    -> op
-    _                           -> error $ "Cannot find op in \"" ++ l ++ "\""
-
-getCallifImmImm :: Line -> VarName
-getCallifImmImm l = case l =~ callifImmPattern :: (String, String, String, [String]) of
-    (_, _, _, [_, _, imm, _])   -> imm
-    _                           -> error $ "Cannot find immediate in \"" ++ l ++ "\""
-
-getCallifImmTarget :: ModuleName -> Line -> MethodName
-getCallifImmTarget name l = case l =~ callifImmPattern :: (String, String, String, [String]) of
-    (_, _, _, [_, _, _, label])  -> labelToMethodName name label
-    _                   -> error $ "Cannot find call target in \"" ++ l ++ "\""
+getAssertImmRange :: Line -> VarName
+getAssertImmRange l = case l =~ assertImmPattern :: (String, String, String, [String]) of
+    (_, _, _, [_, range])   -> range
+    _                       -> error $ "Cannot find range in \"" ++ l ++ "\""

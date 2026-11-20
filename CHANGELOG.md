@@ -7,3 +7,7 @@
 ## 0.1.0.1 -- 2026-11-19
 
 * Optimized method calling to take 1 command block instead of 2
+
+## 0.2.0.0 -- 2026-11-20
+
+* Removed callif and replaced it with an assert statement

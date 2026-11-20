@@ -1,0 +1,26 @@
+#assert-example
+
+.main:
+
+$var1 = 9
+$var2 = $var1
+$var2 %= 2
+-- $var2 should now be 1
+
+call if-even
+call if-odd
+
+.if-even:
+assert $var2 in 0
+/say This section shouldn't be called
+
+.if-odd:
+assert $var2 in 1..
+/say This section should be called
+call direct-comparison
+
+.direct-comparison:
+$a = 5
+$b = 10
+assert $a >= $b
+/say This code should not be reached

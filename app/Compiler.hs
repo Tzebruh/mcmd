@@ -38,39 +38,36 @@ innerPureCompile (l:ls) m methods name
             case m of
                 Just mm -> innerPureCompile ls (Just (fst mm, (snd mm) ++ [emit1, emit2])) methods name
                 Nothing -> error "Attempted to emit command outside a method"
-    | l =~ callifPattern :: Bool
-        = let emit = "execute if score " ++ getCallifSrc1 name l ++ " mcmd " ++ getCallifOp l ++ " " ++ getCallifSrc2 name l ++ " mcmd run scoreboard players set " ++ getCallifTarget name l ++ " mcmd 1" in
+    | l =~ assertPattern :: Bool
+        = let emit = "execute if score " ++ getAssertSrc1 name l ++ " mcmd " ++ getAssertOp l ++ " " ++ getAssertSrc2 name l ++ " mcmd" in
             case m of
                 Just mm -> innerPureCompile ls (Just (fst mm, (snd mm) ++ [emit])) methods name
                 Nothing -> error "Attempted to emit command outside a method"
-    | l =~ callifImmPattern :: Bool
-        = let
-            emit1 = "scoreboard players set #" ++ name ++ "$$imm mcmd " ++ getCallifImmImm l
-            emit2 = "execute if score " ++ getCallifImmSrc1 name l ++ " mcmd " ++ getCallifImmOp l ++ " #" ++ name ++ "$$imm mcmd run scoreboard players set " ++ getCallifImmTarget name l ++ " mcmd 1"
-        in
+    | l =~ assertImmPattern :: Bool
+        = let emit = "execute if score " ++ getAssertImmSrc1 name l ++ " mcmd matches " ++ getAssertImmRange l in
             case m of
-                Just mm -> innerPureCompile ls (Just (fst mm, (snd mm) ++ [emit1, emit2])) methods name
+                Just mm -> innerPureCompile ls (Just (fst mm, (snd mm) ++ [emit])) methods name
                 Nothing -> error "Attempted to emit command outside a method"
     | otherwise = error $ "Unknown command \"" ++ l ++ "\""
 
-nextBlockShouldBeUncon :: Command -> Bool
-nextBlockShouldBeUncon = isPrefixOf "execute if"
+--nextBlockShouldBeUncon :: Command -> Bool
+--nextBlockShouldBeUncon = isPrefixOf "execute if"
 
 -- start with unconditional -> remaining commands -> output remaining chain
-remainingChain :: Bool -> [Command] -> CommandBlockChain
-remainingChain _ [] = []
-remainingChain startUncon (c:cs)
-    | startUncon    = ChainAlways False c : remainingChain (nextBlockShouldBeUncon c) cs
-    | otherwise     = ChainAlways True c : remainingChain (nextBlockShouldBeUncon c) cs
+--remainingChain :: Bool -> [Command] -> CommandBlockChain
+--remainingChain _ [] = []
+--remainingChain startUncon (c:cs)
+--    | startUncon    = ChainAlways False c : remainingChain (nextBlockShouldBeUncon c) cs
+--    | otherwise     = ChainAlways True c : remainingChain (nextBlockShouldBeUncon c) cs
 
 methodToChain :: ModuleName -> CommandMethod -> CommandBlockChain
 methodToChain _ (label, []) = error $ "No commands in method \"" ++ label ++ "\""
 methodToChain name (label, (c:cs)) = let methodName = labelToMethodName name label in
     case label of
-        "main"  -> ImpulseRedstone c : remainingChain False cs
-        "setup" -> ImpulseAlways c : remainingChain False cs
-        "loop"  -> RepeatingAlways c : remainingChain False cs
-        _       -> RepeatingAlways ("execute if score " ++ methodName ++ " mcmd matches 1 run scoreboard players reset " ++ methodName ++ " mcmd") : remainingChain False (c:cs)
+        "main"  -> ImpulseRedstone c : map (ChainAlways True) cs
+        "setup" -> ImpulseAlways c : map (ChainAlways True) cs
+        "loop"  -> RepeatingAlways c : map (ChainAlways True) cs
+        _       -> RepeatingAlways ("execute if score " ++ methodName ++ " mcmd matches 1 run scoreboard players reset " ++ methodName ++ " mcmd") : map (ChainAlways True) (c:cs)
 
 methodsToChains :: ModuleName -> [CommandMethod] -> [CommandBlockChain]
 methodsToChains name = map $ methodToChain name
